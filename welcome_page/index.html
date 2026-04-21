@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="27e93abd-adf5-4472-ba65-6dd4c6cd2876"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Summarizer - Welcome</title>
+    <link rel="icon" type="image/png" href="128.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            line-height: 1.6;
+            padding: 40px 0;
+            padding-top: 80px;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+            transition: border-bottom 0.3s ease;
+        }
+
+        .header.scrolled {
+            border-bottom: 1px solid #cccccc;
+        }
+
+        .header-logo {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        .container {
+            width: 60%;
+            margin: 0 20%;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 35px;
+            color: #1a1a1a;
+        }
+
+        .instruction {
+            font-size: 1.6rem;
+            font-weight: normal;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #666666;
+        }
+
+        .screenshot {
+            width: 1050px;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin: 25px auto 50px auto;
+            display: block;
+            border: 1px solid #000000;
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="header">
+        <img src="128.png" alt="YouTube Summarizer" class="header-logo">
+        <span class="header-title">YouTube Summarizer</span>
+    </header>
+
+    <div class="container">
+        <h1>YouTube Summarizer Installed 🎉</h1>
+
+        <p class="instruction">Just open a YouTube video. The side panel does the rest.</p>
+
+        <img src="picture_highlighted.png" alt="YouTube Summarizer panel" class="screenshot">
+    </div>
+
+    <script>
+        const header = document.getElementById('header');
+
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 0) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
