@@ -541,6 +541,302 @@ def variant_a3_light(img_left_b64, img_right_b64):
     return svg
 
 
+# --- one-screenshot dark variants (A4/A5/A6) -------------------------------
+#
+# Goal: at 280×175 thumbnail size in the Chrome Web Store, the viewer must
+# see in 1 second that this is YouTube + a side-panel summary tool. So we
+# show only the timestamped-summary screenshot, oversized, with the widget
+# clearly the focal point. The YouTube video pane stays partly visible
+# (left edge) so the context reads instantly.
+
+# Shared dark-theme palette for A4/A5/A6 — re-uses A2 dark values exactly,
+# so the three new variants slot in with the existing brand system.
+_DARK = dict(
+    bg_grad_stops='<stop offset="0%" stop-color="#1A0606"/><stop offset="60%" stop-color="#0B0B0B"/><stop offset="100%" stop-color="#050505"/>',
+    glow_color="#FF2323",
+    title_color="#F5F5F5",
+    accent_color="#FF2D2D",
+    subtitle_color="#C8C8C8",
+    stroke_color="#FFFFFF22",
+)
+
+
+def _shot_cropped(img_b64, x, y, w, h, suffix, align="xMaxYMid",
+                  stroke="#FFFFFF22", radius=20, rotate=0,
+                  widget_spotlight=True, video_dim=True):
+    """Screenshot card with optional crop alignment + widget spotlight.
+
+    align="xMaxYMid" keeps the right side of the source pinned (the widget
+    column) and crops the YouTube video pane on the left — that lets us
+    show the widget at full width while keeping just enough of the video
+    column for instant YouTube recognition.
+
+    widget_spotlight: warm radial highlight over the right ~60% (the
+    widget). video_dim: gentle left-side darkening so the eye lands on
+    the widget first.
+    """
+    dx, dy = 8, 18
+    rot = f' rotate({rotate})' if rotate else ''
+    spot = ''
+    dim = ''
+    if widget_spotlight:
+        spot = f'<rect width="{w}" height="{h}" fill="url(#wspot_{suffix})"/>'
+    if video_dim:
+        dim = f'<rect width="{w}" height="{h}" fill="url(#vdim_{suffix})"/>'
+    return f'''
+    <g transform="translate({x},{y}){rot}">
+      <rect x="{dx}" y="{dy}" width="{w}" height="{h}" rx="{radius}" fill="#000000" fill-opacity="0.45"/>
+      <rect x="0" y="0" width="{w}" height="{h}" rx="{radius}" fill="#0A0A0A"/>
+      <defs>
+        <clipPath id="clip_{suffix}">
+          <rect width="{w}" height="{h}" rx="{radius}"/>
+        </clipPath>
+        <radialGradient id="wspot_{suffix}" cx="78%" cy="38%" r="55%">
+          <stop offset="0%"   stop-color="#FF2D2D" stop-opacity="0.18"/>
+          <stop offset="55%"  stop-color="#FF2D2D" stop-opacity="0.04"/>
+          <stop offset="100%" stop-color="#FF2D2D" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="vdim_{suffix}" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="#000000" stop-opacity="0.25"/>
+          <stop offset="20%" stop-color="#000000" stop-opacity="0.12"/>
+          <stop offset="40%" stop-color="#000000" stop-opacity="0.03"/>
+          <stop offset="52%" stop-color="#000000" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g clip-path="url(#clip_{suffix})">
+        <image href="data:image/png;base64,{img_b64}"
+               x="0" y="0" width="{w}" height="{h}"
+               preserveAspectRatio="{align} slice"/>
+        {dim}
+        {spot}
+      </g>
+      <rect x="0" y="0" width="{w}" height="{h}" rx="{radius}"
+            fill="none" stroke="{stroke}" stroke-width="1.5"/>
+    </g>'''
+
+
+def _yt_logo(x, y, scale=1.0, color="#FF0000"):
+    """Compact YouTube play-button logo — pure SVG, no font dependency."""
+    return f'''
+    <g transform="translate({x},{y}) scale({scale})">
+      <rect width="44" height="30" rx="8" fill="{color}"/>
+      <path d="M17 9 L31 15 L17 21 Z" fill="#FFFFFF"/>
+    </g>'''
+
+
+def _feature_chip(x, y, label, accent):
+    """Solid-accent feature chip with list-bullet icon."""
+    cw, ch = 320, 56
+    icon = '<g fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><circle cx="3" cy="4" r="1.6" fill="#FFFFFF"/><line x1="10" y1="4" x2="24" y2="4"/><circle cx="3" cy="12" r="1.6" fill="#FFFFFF"/><line x1="10" y1="12" x2="24" y2="12"/><circle cx="3" cy="20" r="1.6" fill="#FFFFFF"/><line x1="10" y1="20" x2="24" y2="20"/></g>'
+    return f'''
+    <g transform="translate({x},{y})">
+      <rect width="{cw}" height="{ch}" rx="{ch//2}" fill="{accent}"/>
+      <g transform="translate(24,16)">{icon}</g>
+      <text x="62" y="36" font-family="Inter, sans-serif" font-weight="700" font-size="19" fill="#FFFFFF" letter-spacing="0.2">{label}</text>
+    </g>'''
+
+
+# --- Variant A4: hero screenshot left, text right --------------------------
+
+def variant_a4_dark(img_b64):
+    """1280x800 — single large screenshot on the left (cropped to keep the
+    widget pinned right), big text block on the right.
+
+    Reads at thumbnail: massive widget panel + sliver of YouTube video on
+    the far left for context. The right-column text states what the
+    product does in 3 lines max.
+    """
+    d = _DARK
+    sw, sh = 660, 720
+    sx, sy = 40, 40
+
+    shot = _shot_cropped(img_b64, sx, sy, sw, sh, suffix="A4",
+                         align="xMaxYMid", stroke=d["stroke_color"],
+                         radius=22)
+
+    # Right column starts at x=750
+    tx = 740
+    title_y = 200
+    sub_y = 348
+    chip_y = 460
+
+    yt = _yt_logo(tx, 120, scale=1.1)
+    chip = _feature_chip(tx, chip_y, "Timestamped summary", d["accent_color"])
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">{d["bg_grad_stops"]}</linearGradient>
+    <radialGradient id="glowL" cx="20%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="{d["glow_color"]}" stop-opacity="0.50"/>
+      <stop offset="60%" stop-color="{d["glow_color"]}" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="{d["glow_color"]}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowR" cx="90%" cy="80%" r="50%">
+      <stop offset="0%" stop-color="{d["glow_color"]}" stop-opacity="0.32"/>
+      <stop offset="70%" stop-color="{d["glow_color"]}" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="{d["glow_color"]}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect width="1280" height="800" fill="url(#glowL)"/>
+  <rect width="1280" height="800" fill="url(#glowR)"/>
+
+  <!-- Halo behind the screenshot (focuses eye on widget side) -->
+  <ellipse cx="{sx + sw - 140}" cy="{sy + sh//2}" rx="320" ry="280"
+           fill="{d["accent_color"]}" opacity="0.32"/>
+
+  {shot}
+
+  <!-- Right column: YT logo + title + subtitle + chip -->
+  {yt}
+  <text x="{tx + 56}" y="146" font-family="Inter, sans-serif" font-weight="600" font-size="18" fill="{d["subtitle_color"]}" letter-spacing="0.4">FOR YOUTUBE</text>
+
+  <text x="{tx}" y="{title_y}" font-family="Goldman, 'Arial Black', sans-serif" font-size="72" fill="{d["title_color"]}" letter-spacing="-1.5">YouTube</text>
+  <text x="{tx}" y="{title_y + 70}" font-family="Goldman, 'Arial Black', sans-serif" font-size="72" fill="{d["accent_color"]}" letter-spacing="-1.5">Summarizer</text>
+
+  <text x="{tx}" y="{sub_y}" font-family="Inter, sans-serif" font-size="22" font-weight="500" fill="{d["subtitle_color"]}" letter-spacing="0.2">Get an AI-generated, timestamped</text>
+  <text x="{tx}" y="{sub_y + 30}" font-family="Inter, sans-serif" font-size="22" font-weight="500" fill="{d["subtitle_color"]}" letter-spacing="0.2">summary of any video — in seconds.</text>
+
+  {chip}
+
+  <text x="{tx}" y="{chip_y + 100}" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#888888" letter-spacing="0.3">Works in any language · Any length</text>
+</svg>'''
+
+
+# --- Variant A5: tilted hero, centered -------------------------------------
+
+def variant_a5_dark(img_b64):
+    """1280x800 — single tilted screenshot centered as hero. Title above,
+    chip below. Dramatic spotlight on the widget. The slight tilt + halo
+    sells "product shot" energy.
+    """
+    d = _DARK
+    sw, sh = 880, 540
+    sx = (1280 - sw) // 2
+    sy = 130
+
+    shot = _shot_cropped(img_b64, sx, sy, sw, sh, suffix="A5",
+                         align="xMaxYMid", stroke=d["stroke_color"],
+                         radius=22, rotate=-2)
+
+    chip_y = sy + sh + 28
+    chip = _feature_chip((1280 - 320) // 2, chip_y,
+                         "Timestamped summary", d["accent_color"])
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">{d["bg_grad_stops"]}</linearGradient>
+    <radialGradient id="glowC" cx="50%" cy="55%" r="60%">
+      <stop offset="0%" stop-color="{d["glow_color"]}" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="{d["glow_color"]}" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="{d["glow_color"]}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect width="1280" height="800" fill="url(#glowC)"/>
+
+  <!-- Title -->
+  <text x="640" y="76" text-anchor="middle" font-family="Goldman, 'Arial Black', sans-serif" font-size="56" fill="{d["title_color"]}" letter-spacing="-1.3">YouTube <tspan fill="{d["accent_color"]}">Summarizer</tspan></text>
+  <text x="640" y="116" text-anchor="middle" font-family="Inter, sans-serif" font-size="19" font-weight="500" fill="{d["subtitle_color"]}" letter-spacing="0.2">Get a timestamped summary of any video — without watching it.</text>
+
+  <!-- Halo behind tilted screenshot -->
+  <ellipse cx="{sx + sw - 200}" cy="{sy + sh//2 + 20}" rx="420" ry="280"
+           fill="{d["accent_color"]}" opacity="0.30"/>
+
+  {shot}
+
+  {chip}
+</svg>'''
+
+
+# --- Variant A6: browser-mockup frame --------------------------------------
+
+def variant_a6_dark(img_b64):
+    """1280x800 — Chrome-style browser frame with a youtube.com URL pill,
+    the screenshot fills the content area. Maximum YouTube recognition
+    because the frame literally says "you are on youtube.com".
+
+    Title sits on top of the dark canvas above the browser; chip below.
+    """
+    d = _DARK
+    # Browser frame
+    bx, by, bw, bh = 60, 130, 1160, 560
+    tab_h = 38
+    url_h = 40
+
+    # Content area inside frame
+    cx_, cy_ = bx, by + tab_h + url_h
+    cw_, ch_ = bw, bh - tab_h - url_h
+
+    # Screenshot fills content area, anchored right (widget visible in full)
+    shot = _shot_cropped(img_b64, cx_, cy_, cw_, ch_, suffix="A6",
+                         align="xMaxYMid", stroke="#00000000",
+                         radius=0, widget_spotlight=True, video_dim=False)
+
+    chip = _feature_chip((1280 - 320) // 2, by + bh + 22,
+                         "Timestamped summary", d["accent_color"])
+
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">{d["bg_grad_stops"]}</linearGradient>
+    <radialGradient id="glowTop" cx="50%" cy="0%" r="55%">
+      <stop offset="0%" stop-color="{d["glow_color"]}" stop-opacity="0.40"/>
+      <stop offset="60%" stop-color="{d["glow_color"]}" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="{d["glow_color"]}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBR" cx="85%" cy="85%" r="50%">
+      <stop offset="0%" stop-color="{d["glow_color"]}" stop-opacity="0.28"/>
+      <stop offset="70%" stop-color="{d["glow_color"]}" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="{d["glow_color"]}" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="browserClip">
+      <rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="16"/>
+    </clipPath>
+  </defs>
+  <rect width="1280" height="800" fill="url(#bg)"/>
+  <rect width="1280" height="800" fill="url(#glowTop)"/>
+  <rect width="1280" height="800" fill="url(#glowBR)"/>
+
+  <!-- Title -->
+  <text x="640" y="76" text-anchor="middle" font-family="Goldman, 'Arial Black', sans-serif" font-size="52" fill="{d["title_color"]}" letter-spacing="-1.3">YouTube <tspan fill="{d["accent_color"]}">Summarizer</tspan></text>
+  <text x="640" y="108" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="500" fill="{d["subtitle_color"]}" letter-spacing="0.2">A side-panel summary for every video you watch.</text>
+
+  <!-- Browser shell -->
+  <g>
+    <!-- shadow -->
+    <rect x="{bx + 6}" y="{by + 14}" width="{bw}" height="{bh}" rx="16" fill="#000000" fill-opacity="0.5"/>
+    <!-- frame body -->
+    <rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="16" fill="#1F1F1F" stroke="#2A2A2A" stroke-width="1"/>
+    <g clip-path="url(#browserClip)">
+      <!-- tab bar -->
+      <rect x="{bx}" y="{by}" width="{bw}" height="{tab_h}" fill="#2A2A2A"/>
+      <circle cx="{bx + 22}" cy="{by + tab_h//2}" r="6" fill="#FF5F57"/>
+      <circle cx="{bx + 42}" cy="{by + tab_h//2}" r="6" fill="#FEBC2E"/>
+      <circle cx="{bx + 62}" cy="{by + tab_h//2}" r="6" fill="#28C840"/>
+      <!-- active tab pill -->
+      <rect x="{bx + 96}" y="{by + 8}" width="240" height="{tab_h - 8}" rx="10" fill="#1F1F1F"/>
+      <rect x="{bx + 108}" y="{by + 16}" width="14" height="14" rx="3" fill="#FF0000"/>
+      <path d="M{bx + 113} {by + 21} L{bx + 119} {by + 23} L{bx + 113} {by + 25} Z" fill="#FFFFFF"/>
+      <text x="{bx + 130}" y="{by + 27}" font-family="Inter, sans-serif" font-weight="600" font-size="12" fill="#E0E0E0">The skill of self-confidence | Dr. Iv...</text>
+
+      <!-- url bar -->
+      <rect x="{bx}" y="{by + tab_h}" width="{bw}" height="{url_h}" fill="#1F1F1F"/>
+      <rect x="{bx + 16}" y="{by + tab_h + 6}" width="{bw - 32}" height="{url_h - 12}" rx="14" fill="#101010" stroke="#2E2E2E" stroke-width="1"/>
+      <g transform="translate({bx + 30}, {by + tab_h + 14})">
+        <path d="M0 4 a4 4 0 0 1 8 0 v4 H0 Z" fill="none" stroke="#7BD88F" stroke-width="1.6"/>
+        <rect x="-2" y="7" width="12" height="9" rx="2" fill="none" stroke="#7BD88F" stroke-width="1.6"/>
+      </g>
+      <text x="{bx + 56}" y="{by + tab_h + url_h//2 + 5}" font-family="Inter, sans-serif" font-size="13" font-weight="500" fill="#C8C8C8" letter-spacing="0.3">youtube.com/watch?v=… <tspan fill="#666666">— enhanced by Summarizer</tspan></text>
+    </g>
+
+    <!-- screenshot inside content area -->
+    {shot}
+  </g>
+
+  {chip}
+</svg>'''
+
+
 # --- write files ---------------------------------------------------------
 
 out = {
@@ -551,6 +847,9 @@ out = {
     "cover_variantA2_dark.svg":  variant_a2(YT1C, YT2C, "dark"),
     "cover_variantA2_light.svg": variant_a2(YT3, YT4, "light"),
     "cover_variantA3_light.svg": variant_a3_light(YT3, YT4),
+    "cover_variantA4_dark.svg":  variant_a4_dark(YT1C),
+    "cover_variantA5_dark.svg":  variant_a5_dark(YT1C),
+    "cover_variantA6_dark.svg":  variant_a6_dark(YT1C),
 }
 for name, svg in out.items():
     path = os.path.join(ROOT, name)
